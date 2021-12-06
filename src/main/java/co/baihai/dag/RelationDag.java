@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static java.lang.Math.min;
+
 /**
  * Copyright BaiHai.ai (c) all right reserved.
  * Project: halo-pipeline
@@ -71,29 +73,84 @@ public class RelationDag implements Runnable{
         }
     }
 
+    // https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+    static class NodeWrapper {
+        public String inner;
+        public int index;
+        public int lowLink;
+        public boolean onStack = false;
+        public NodeWrapper(String inner, int index) {
+            this.inner = inner;
+            this.index = index;
+        }
+    }
+
+    static class Vars {
+        public int index = 0;
+        LinkedList<NodeWrapper> stack = new LinkedList<>();
+    }
+
     public boolean hasCircle(){
-        if (nextTaskNames.isEmpty() || tasks.isEmpty()) {
-            return false;
-        } else {
-            for (String item : tasks.keySet()) {
-                LinkedList<String> queue = new LinkedList<>();
-                HashSet<String> seen = new HashSet<>();
-                queue.add(item);
-                while( ! queue.isEmpty()) {
-                    String head = queue.pop();
-                    ArrayList<String> nexts = nextTaskNames.get(head);
-                    if (nexts != null) {
-                        if (nexts.stream().anyMatch(x -> seen.contains(x))) {
-                            return true;
-                        } else {
-                            queue.addAll(nexts);
-                            seen.addAll(nexts);
-                        }
+        Vars var = new Vars();
+        HashMap<String, NodeWrapper> wrapped = new HashMap<>();
+        for (String v: tasks.keySet()) {
+            wrapped.put(v, new NodeWrapper(v, -1));
+        }
+
+        for (NodeWrapper v : wrapped.values()) {
+            if (v.index < 0) {
+                if (strongConnect(wrapped, v, var)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean strongConnect(HashMap<String, NodeWrapper> wrapped, NodeWrapper v, Vars var) {
+        v.index = var.index;
+        v.lowLink = var.index;
+        var.index = var.index + 1;
+        var.stack.push(v);
+        v.onStack = true;
+
+        for (String wString : this.nextTaskNames.getOrDefault(v.inner, new ArrayList<>())) {
+            NodeWrapper w = wrapped.get(wString);
+            if (w.index < 0) {
+                if (strongConnect(wrapped, w, var) ) {
+                    return true;
+                }
+                v.lowLink = min(v.lowLink, w.lowLink);
+            } else if (w.onStack) {
+                v.lowLink = min(v.lowLink, w.index);
+            }
+        }
+
+        if (v.lowLink == v.index) {
+            HashSet<String> part = new HashSet<>();
+            while(true) {
+                NodeWrapper w = var.stack.pop();
+                w.onStack = false;
+                part.add(w.inner);
+                if (w.inner.equals(v.inner)) {
+                    break;
+                }
+            }
+            if (part.size() > 1) {
+                return true;
+            } else if (part.size() == 1) {
+                // a -> a   circle
+                for (String onlyOne: part) {
+                    ArrayList<String> nexts = nextTaskNames.getOrDefault(onlyOne, new ArrayList<>());
+                    if (nexts.stream().anyMatch(x -> x.equals(onlyOne))) {
+                        return true;
                     }
                 }
             }
+        } else {
             return false;
         }
+        return false;
     }
 
     public Status finalStatus() {

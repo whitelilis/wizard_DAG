@@ -79,9 +79,9 @@ public class RelationDagTest {
         assert dag5.hasCircle();
 
         RelationDag dag6 = new RelationDag(2, 2, 1, true);
-        dag5.addEdge(a, b);
-        dag5.addEdge(c, b);
-        dag5.addEdge(d, b);
+        dag6.addEdge(a, b);
+        dag6.addEdge(c, b);
+        dag6.addEdge(d, b);
         assert ! dag6.hasCircle();
 
         RelationDag dag = new RelationDag(10, 2, 1, true);
@@ -94,6 +94,13 @@ public class RelationDagTest {
         dag.addEdge(e, f);
         dag.addEdge(f, j);
         assert ! dag.hasCircle();
+
+        RelationDag dag8 = new RelationDag(10, 2, 1, true);
+        dag8.addEdge(a, b);
+        dag8.addEdge(a, c);
+        dag8.addEdge(b, d);
+        dag8.addEdge(c, d);
+        assert ! dag8.hasCircle();
     }
 
     @Test
