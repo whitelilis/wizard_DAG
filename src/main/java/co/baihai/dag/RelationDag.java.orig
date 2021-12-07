@@ -161,7 +161,6 @@ public class RelationDag implements Runnable{
         logger.info("scheduled {}", task.name());
         int alreadyRunTimes = runningTimes.getOrDefault(task.name(), 0);
         runningTimes.put(task.name(), alreadyRunTimes + 1);
-        toScheduleNames.remove(task.name());
         runningPool.submit(task);
     }
 
@@ -248,7 +247,7 @@ public class RelationDag implements Runnable{
                     }
                 }
                 // then check to schedule tasks
-                for (String taskName : toScheduleNames.stream().toList()) {
+                for (String taskName : toScheduleNames) {
                     DagNode t = tasks.get(taskName);
                     ArrayList<String> preTaskNames = this.preTaskNames.get(taskName);
                     if (preTaskNames == null || preTaskNames.isEmpty()) { // if no pre node
