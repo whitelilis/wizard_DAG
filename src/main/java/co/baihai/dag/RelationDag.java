@@ -188,6 +188,8 @@ public class RelationDag implements Runnable{
         runningTimes.remove(task.name());
         toScheduleNames.remove(task.name());
         finishedTaskOrders.put(task.name(), finishedTaskOrders.size());
+        // set dag status to the last finished task's status
+        this.status = task.status();
     }
 
     /**
@@ -196,7 +198,7 @@ public class RelationDag implements Runnable{
      * @return
      */
     public boolean someNextNeedAllSuccess(DagNode task) {
-        ArrayList<String> nextTaskNames = this.nextTaskNames.get(task.name());
+        ArrayList<String> nextTaskNames = this.nextTaskNames.getOrDefault(task.name(), new ArrayList<>());
         return nextTaskNames.stream()
                 .map(name -> tasks.get(name).joinRelation())
                 .anyMatch(r -> r == JoinRelation.ALL_SUCCESS);
@@ -209,7 +211,7 @@ public class RelationDag implements Runnable{
      * @return
      */
     private boolean someNextDependOnThisSuccess(DagNode task) {
-        ArrayList<String> nextTaskNames = this.nextTaskNames.get(task.name());
+        ArrayList<String> nextTaskNames = this.nextTaskNames.getOrDefault(task.name(), new ArrayList<>());
         for (String taskName: nextTaskNames) {
             DagNode t = tasks.get(taskName);
             if (t.joinRelation() == JoinRelation.ONE_SUCCESS) {
